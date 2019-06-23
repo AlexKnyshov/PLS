@@ -10,6 +10,7 @@ git clone https://github.com/AlexKnyshov/PLS
 
 ### Dependencies
 Python 2
+
 R with the following packages installed
 - ape
 - phangorn
@@ -17,6 +18,7 @@ R with the following packages installed
 - grid
 - gridExtra
 - ggtree
+
 RAxML or IQ-TREE
 
 
