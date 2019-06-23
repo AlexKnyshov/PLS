@@ -16,11 +16,16 @@ prtout = {}
 
 with open(prts, "rb") as prtfile:
 	for row in prtfile:
-		row1 = row.strip().split(" ")[1].split("=")
-		prtout[row1[0]] = [int(i) for i in row1[1].split("-")]
+		row_eq = row.strip().split("=")
+		row_prt = row_eq[0].strip().split(",")[1].strip()
+		row_ranges = row_eq[1].strip().split(",")
+		if len(row_ranges) == 1:
+			prtout[row_prt] = [int(i) for i in row_ranges[0].strip().split("-")]
+		else:
+			for r in range(len(row_ranges)):
+				prtout[row_prt+"_"+str(r+1)] = [int(i) for i in row_ranges[r].strip().split("-")]
 
-
-finaout = open("prtlls.csv","w")
+finaout = open("pls_prtlls.csv","w")
 print >> finaout, "partition,"+",".join([str(i) for i in sorted(tabout.keys())])
 for partition, prtrange in sorted(prtout.items()):
 	treeprtll = []
