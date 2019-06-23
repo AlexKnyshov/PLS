@@ -9,14 +9,10 @@ library(gridExtra)
 args = commandArgs(trailingOnly=TRUE)
 tab <- read.csv(args[1], stringsAsFactors=FALSE)
 start <- read.tree(args[2])
-datalist <- list()
-alllist <- list()
-allmin <- 0
-allmax <- 0
+datalist <- data.frame() 
+
 for (node in 2:start$Nnode){
-	datalist[[node]] <- data.frame(char=numeric(),
-                            		value=numeric(),
-                            		col=numeric()) 
+	dfnode <- data.frame(char=numeric(),value=numeric()) 
 	tr2 <- (node-1)*2-1
 	tr3 <- (node-1)*2
 	if (sum(tab[,tr2+2]) >= sum(tab[,tr3+2])){
@@ -27,19 +23,23 @@ for (node in 2:start$Nnode){
 	}
 	for (partition in 1:length(tab[,1])){
 		pls <- tab[partition,2] - tab[partition,nextbesttopo+2]
-		if (pls < 0){
-			colint <- 1
-		}
-		else {
-			colint <- 0
-		}
-		datalist[[node]] <- rbind(datalist[[node]], list(char=partition, value=pls, col=colint))
+		
+    dfnode <- rbind(dfnode, data.frame(char=partition, value=pls))
+    
 	}
+  colnames(dfnode) <- c("char", node)
+  if (length(datalist) == 0){
+    datalist <- dfnode
+  }
+  else {
+    datalist <- merge(datalist, dfnode, by.x="char", by.y="char")
+  }
 
 }
-##print (datalist) #expor this as table
 
-p1 <- ggtree(start, size=1) + geom_tiplab(size=2)
+write.csv(datalist,"pls_datalist.csv")
+
+treeplot <- ggtree(start, size=1) + geom_tiplab(size=2)
 
 nodelabs <- (2+Ntip(start)):(start$Nnode+Ntip(start))
 
@@ -49,12 +49,21 @@ insets <- list()
 outlierprts <- numeric()
 outlierall <- data.frame(prt=character(),val=numeric(),node=numeric(),tips=list()) 
 
+pdf("pls_nodeplots.pdf")
 for (i in 2:start$Nnode){
-	 datatemp <- datalist[[i]]
+	 datatemp <- datalist[,c(1,i)]
+   colnames(datatemp) <- c("char", "value")
+   datatemp$col <- NA
+   datatemp$col[datatemp$value<0] <- 1
+   datatemp$col[datatemp$value>=0] <- 0
   	plot1 <- ggplot(data=datatemp, aes(x=char, y=value, fill=as.character(col)))+
   	labs(title=nodelabs[i-1])+
     geom_bar(stat="identity") + theme(legend.position="none",axis.title.x=element_blank(),# title=element_text(size=2),
                                       axis.title.y=element_blank(),
+                                      #axis.ticks.x=element_blank(),
+                                      axis.ticks.x = element_line(size = 0.1),
+                                      #axis.ticks.y=element_blank(),
+                                      axis.ticks.y = element_line(size = 0.1),
                                       panel.border = element_blank(),
                                       panel.grid.major = element_blank(),
                                       panel.grid.minor = element_blank(),
@@ -72,7 +81,8 @@ for (i in 2:start$Nnode){
   									  axis.title.y=element_blank(),
                                       axis.text.y=element_blank(),
                                       axis.text.x = element_text(size=1,margin = margin(t =0.01), colour = "black"),
-                                      axis.ticks.x=element_blank(),
+                                      #axis.ticks.x=element_blank(),
+                                      axis.ticks.x = element_line(size = 0.1),
                                       axis.ticks.y=element_blank(),
                                       panel.border = element_blank(),
                                       panel.grid.major = element_blank(),
@@ -114,27 +124,32 @@ for (i in 2:start$Nnode){
   	}
   	insets[[i-1]] <- grid.arrange(plot1, plot2, layout_matrix=matrix(c(1,1,1,2), ncol=4),ncol = 4)
 }
+dev.off()
 names(insets) <- nodelabs
 
-##print (sort(outlierprts)) # output this as table
+write.csv(sort(outlierprts),"pls_Nnode_outliers.csv")
 
 outlierall$groups <- paste0("N_", outlierall$node, "_", outlierall$prt)
 outlierall <- outlierall[order(-abs(outlierall$val)),]
-##print (outlierall) #output this as table
 outlierprtsdf <- as.data.frame(outlierprts)
+
+write.csv(outlierall,"pls_LnLdiff_outliers.csv")
+
 ggbar1 <- ggplot(outlierprtsdf, aes(x=reorder(rownames(outlierprtsdf),-outlierprtsdf$outlierprts), y=outlierprtsdf$outlierprts)) + 
 	geom_bar(stat="identity") +
+  labs(title="Outliers with most nodes", x="Partition", y="Number of nodes with outlier")+
 	theme(axis.text.x = element_text(angle = 90, hjust = 1))
-ggsave("bar1.pdf", ggbar1)
+ggsave("pls_Nnode_outliers.pdf", ggbar1)
 ggbar2 <- ggplot(outlierall, aes(x=reorder(outlierall$groups,-abs(outlierall$val)), y=abs(outlierall$val))) + 
 	geom_bar(stat="identity") +
+  labs(title="Outliers with highest likelihood difference", x="Node and Partition", y="Absolute LnL difference") +
 	theme(axis.text.x = element_text(angle = 90, hjust = 1))
-ggsave("bar2.pdf", ggbar2)
+ggsave("pls_LnLdiff_outliers.pdf", ggbar2)
 ###
 
 
-p3 <- inset(p1, insets, width=max(p1$data$x)/10, height=length(p1$data$isTip[p1$data$isTip])/30,vjust=0.2,hjust=0.005)
+finalplot <- inset(treeplot, insets, width=max(treeplot$data$x)/10, height=length(treeplot$data$isTip[treeplot$data$isTip])/30,vjust=0.2,hjust=0.005)
 
-ggsave("testplot.pdf",p3, width=8.5, height=20)
+ggsave("pls_annotated_tree.pdf",finalplot, width=8.5, height=20)
 
   	
