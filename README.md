@@ -34,23 +34,23 @@ Rscript ./nniR.R MLtreefile.tre
 ```
 Output is written to `pls_nni_tree.tre`
 
-Assuming alignment.phy is the alignment file and partitions.txt is the partition scheme, evaluate likelihood of all trees using either:
+Assuming `alignment.phy` is the alignment file and `partitions.txt` is the partition scheme, evaluate likelihood of all trees using either:
 ```
-./iqtree -nt 1 -s ./alignment.phy -spp ./alignment.prt -z pls_nni_tree.tre -wsl -pre calcPLS -n 0
+./iqtree -nt 2 -s ./alignment.phy -spp ./partitions.txt -z pls_nni_tree.tre -wsl -pre calcPLS -n 0
 ```
 Or if the ML partition model has been optimized and saved to a file `analysis.best_model.nex`:
 ```
-./iqtree -nt 1 -s ./alignment.phy -spp ./analysis.best_model.nex -z pls_nni_tree.tre -wsl -pre calcPLS -n 0
+./iqtree -nt 2 -s ./alignment.phy -spp ./analysis.best_model.nex -z pls_nni_tree.tre -wsl -pre calcPLS -n 0
 ```
 Or using RAxML:
 ```
-raxmlHPC -T 1 -f G -s ./alignment.phy -m GTRGAMMA -z pls_nni_tree.tre -n calcPLS
+raxmlHPC -T 2 -f G -s ./alignment.phy -q partitions.txt -m GTRGAMMA -z pls_nni_tree.tre -n calcPLS
 ```
-Given the prefix parameter in the examples above, the output is written to calcPLS.sitelh (in case of IQ-TREE) or RAxML_perSiteLLs.calcPLS (in case of RAxML). Adjust the prefix parameteres if needed
+Given the prefix parameter in the examples above, the output is written to calcPLS.sitelh (in case of IQ-TREE) or RAxML_perSiteLLs.calcPLS (in case of RAxML). Adjust the prefix parameteres if needed. Adjust the -nt (IQ-TREE) or -T (RAxML) parameter according to number of cores (threads) to be used for calculations.
 
 Assuming the output file name at the previous step is calcPLS.sitelh, calculate the per-partition sum of LnLs using the partitioning scheme of interest (usually the original partitioning scheme):
 ```
-python ./PLS.py calcPLS.sitelh alignment.prt
+python ./PLS.py calcPLS.sitelh partitions.txt
 ```
 
 Finally, calculate per partition difference, export tables and draw plots:
