@@ -5,7 +5,9 @@ Conflict is evaluated for each branch by comparing LnLs between different NNI co
 
 ## References
 Lee and Hugall. 2003. Partitioned Likelihood Support and the Evaluation of Data Set Conflict. Systematic Biology, 52(1), 15-22.
+
 Shen, Hittinger, and Rokas. 2017. Contentious relationships in phylogenomic studies can be driven by a handful of genes. Nature Ecology & Evolution, 1(5), 0126.
+
 Anisimova and Gascuel. 2006. Approximate likelihood-ratio test for branches: a fast, accurate, and powerful alternative. Systematic biology, 55(4), 539-552.
 
 ## Installation
