@@ -61,7 +61,7 @@ iqtree -nt 2 -s ./alignment.phy -spp ./analysis.best_model.nex -z pls_nni_tree.t
 ```
 Or using RAxML:
 ```
-raxmlHPC -T 2 -f G -s ./alignment.phy -q partitions.txt -m GTRGAMMA -z pls_nni_tree.tre -n calcPLS
+raxmlHPC -T 2 -f g -s ./alignment.phy -q partitions.txt -m GTRGAMMA -z pls_nni_tree.tre -n calcPLS
 ```
 Given the prefix parameter in the examples above, the output is written to calcPLS.sitelh (in case of IQ-TREE) or RAxML_perSiteLLs.calcPLS (in case of RAxML). Adjust the prefix parameteres if needed. Adjust the -nt (IQ-TREE) or -T (RAxML) parameter according to number of cores (threads) to be used for calculations.
 
