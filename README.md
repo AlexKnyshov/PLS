@@ -10,6 +10,8 @@ Shen, Hittinger, and Rokas. 2017. Contentious relationships in phylogenomic stud
 
 Anisimova and Gascuel. 2006. Approximate likelihood-ratio test for branches: a fast, accurate, and powerful alternative. Systematic biology, 55(4), 539-552.
 
+![illustration](illustration.png)
+
 ## Installation
 
 Simply copy the files or clone the repo
