@@ -1,27 +1,46 @@
+args = commandArgs(trailingOnly=TRUE)
+
+if (length(args) == 0){
+  cat("Syntax: Rscript PLS.R [option: -g (alternative best NNI is selected globally using total LnL), -l (alternative best NNI is selected locally using partition LnL)] [path to pls_prtlls.csv file] [path to the tree file]\n")
+  cat("Example: Rscript PLS.R -g pls_prtlls.csv tree.tre \n")
+  quit()
+}
+
 library(ape)
 library(phangorn)
 library(ggtree)
 library(ggplot2)
 library(grid)
 library(gridExtra)
+
 ###
 
-args = commandArgs(trailingOnly=TRUE)
-tab <- read.csv(args[1], stringsAsFactors=FALSE)
-start <- read.tree(args[2])
+opt <- args[1]
+tab <- read.csv(args[2], stringsAsFactors=FALSE)
+start <- read.tree(args[3])
 datalist <- data.frame() 
 
 for (node in 2:start$Nnode){
 	dfnode <- data.frame(char=numeric(),value=numeric()) 
 	tr2 <- (node-1)*2-1
 	tr3 <- (node-1)*2
-	if (sum(tab[,tr2+2]) >= sum(tab[,tr3+2])){
-		nextbesttopo <- tr2
-	}
-	else {
-		nextbesttopo <- tr3
-	}
+  if (opt == "-g"){
+    if (sum(tab[,tr2+2]) >= sum(tab[,tr3+2])){
+      nextbesttopo <- tr2
+    }
+    else {
+      nextbesttopo <- tr3
+    }
+  }
 	for (partition in 1:length(tab[,1])){
+    if (opt == "-l"){
+      if (sum(tab[partition,tr2+2]) >= sum(tab[partition,tr3+2])){
+        nextbesttopo <- tr2
+      }
+      else {
+        nextbesttopo <- tr3
+      }
+    }
 		pls <- tab[partition,2] - tab[partition,nextbesttopo+2]
 		
     dfnode <- rbind(dfnode, data.frame(char=partition, value=pls))
@@ -58,11 +77,9 @@ for (i in 2:start$Nnode){
    datatemp$col[datatemp$value>=0] <- 0
   	plot1 <- ggplot(data=datatemp, aes(x=char, y=value, fill=as.character(col)))+
   	labs(title=nodelabs[i-1])+
-    geom_bar(stat="identity") + theme(legend.position="none",axis.title.x=element_blank(),# title=element_text(size=2),
+    geom_bar(stat="identity") + theme(legend.position="none",axis.title.x=element_blank(),
                                       axis.title.y=element_blank(),
-                                      #axis.ticks.x=element_blank(),
                                       axis.ticks.x = element_line(size = 0.1),
-                                      #axis.ticks.y=element_blank(),
                                       axis.ticks.y = element_line(size = 0.1),
                                       panel.border = element_blank(),
                                       panel.grid.major = element_blank(),
@@ -77,11 +94,10 @@ for (i in 2:start$Nnode){
     scale_x_continuous(breaks=seq(0,length(tab[,1]),10))
     plot2 <- ggplot(datatemp, aes(x=1, y=value)) + 
   			geom_boxplot(outlier.shape=NA) +
-  			theme(legend.position="none",axis.title.x=element_blank(),# title=element_text(size=2),
+  			theme(legend.position="none",axis.title.x=element_blank(),
   									  axis.title.y=element_blank(),
                                       axis.text.y=element_blank(),
                                       axis.text.x = element_text(size=1,margin = margin(t =0.01), colour = "black"),
-                                      #axis.ticks.x=element_blank(),
                                       axis.ticks.x = element_line(size = 0.1),
                                       axis.ticks.y=element_blank(),
                                       panel.border = element_blank(),
@@ -112,7 +128,6 @@ for (i in 2:start$Nnode){
   	print(tempvec)
    	if (length(tempvec) > 0){
   	  	for (tv in tempvec){
-  	  		# print (tv)
   	  		outlierall <- rbind(outlierall, data.frame(prt=tv, val=as.numeric(names(tempvec)[tempvec == tv]), node=nodelabs[i-1], tips=I(list(start$tip.label[unlist(Descendants(start,nodelabs[i-1],"tips"))]))))
 			if (tv %in% names(outlierprts)){
 				outlierprts[tv] = outlierprts[tv] + 1
