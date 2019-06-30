@@ -15,9 +15,11 @@ tabout = {}
 
 with open(tab, "rb") as tabfile:
 	next(tabfile)
+	counter = 1
 	for row in tabfile:
 		row1 = row.strip().split()
-		tabout[int(row1[0][4:])] = [float(i) for i in row1[1:]]
+		tabout[counter] = [float(i) for i in row1[1:]]
+		counter += 1
 
 prtout = {}
 
