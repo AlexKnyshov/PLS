@@ -1,8 +1,9 @@
 args = commandArgs(trailingOnly=TRUE)
 
 if (length(args) == 0){
-  cat("Syntax: Rscript PLS.R [option: -g (alternative best NNI is selected globally using total LnL), -l (alternative best NNI is selected locally using partition LnL)] [path to pls_prtlls.csv file] [path to the tree file]\n")
+  cat("Syntax: Rscript PLS.R [option: -g (alternative best NNI is selected globally using total LnL), -l (alternative best NNI is selected locally using partition LnL), -m (manually specified trees were compared)] [path to pls_prtlls.csv file] ([path to the tree file])\n")
   cat("Example: Rscript PLS.R -g pls_prtlls.csv tree.tre \n")
+  cat("Example: Rscript PLS.R -m pls_prtlls.csv \n")
   quit()
 }
 
@@ -17,64 +18,99 @@ library(gridExtra)
 
 opt <- args[1]
 tab <- read.csv(args[2], stringsAsFactors=FALSE)
-start <- read.tree(args[3])
 datalist <- data.frame() 
+if (opt == "-m"){
 
-for (node in 2:start$Nnode){
-	dfnode <- data.frame(char=numeric(),value=numeric()) 
-	tr2 <- (node-1)*2-1
-	tr3 <- (node-1)*2
-  if (opt == "-g"){
-    if (sum(tab[,tr2+2]) >= sum(tab[,tr3+2])){
-      nextbesttopo <- tr2
+  for (comparison in 3:length(tab[1,])){
+    dfcomp <- data.frame(char=numeric(),value=numeric())
+    for (partition in 1:length(tab[,1])){
+      pls <- tab[partition,2] - tab[partition,comparison]
+      
+      dfcomp <- rbind(dfcomp, data.frame(char=partition, value=pls))
+    }
+    colnames(dfcomp) <- c("char", comparison)
+    if (length(datalist) == 0){
+      datalist <- dfcomp
     }
     else {
-      nextbesttopo <- tr3
+      datalist <- merge(datalist, dfcomp, by.x="char", by.y="char")
     }
+
   }
-	for (partition in 1:length(tab[,1])){
-    if (opt == "-l"){
-      if (sum(tab[partition,tr2+2]) >= sum(tab[partition,tr3+2])){
+} else {
+  start <- read.tree(args[3])
+  print (start$Nnode)
+  for (node in 2:start$Nnode){
+    dfnode <- data.frame(char=numeric(),value=numeric()) 
+    tr2 <- (node-1)*2-1
+    tr3 <- (node-1)*2
+    print ( paste0 (node,"_", tr2,"_", tr3))
+    if (opt == "-g"){
+      if (sum(tab[,tr2+2]) >= sum(tab[,tr3+2])){
         nextbesttopo <- tr2
       }
       else {
         nextbesttopo <- tr3
       }
     }
-		pls <- tab[partition,2] - tab[partition,nextbesttopo+2]
-		
-    dfnode <- rbind(dfnode, data.frame(char=partition, value=pls))
-    
-	}
-  colnames(dfnode) <- c("char", node)
-  if (length(datalist) == 0){
-    datalist <- dfnode
-  }
-  else {
-    datalist <- merge(datalist, dfnode, by.x="char", by.y="char")
-  }
+    for (partition in 1:length(tab[,1])){
+      if (opt == "-l"){
+        if (sum(tab[partition,tr2+2]) >= sum(tab[partition,tr3+2])){
+          nextbesttopo <- tr2
+        }
+        else {
+          nextbesttopo <- tr3
+        }
+      }
+      pls <- tab[partition,2] - tab[partition,nextbesttopo+2]
+      
+      dfnode <- rbind(dfnode, data.frame(char=partition, value=pls))
+      
+    }
+    colnames(dfnode) <- c("char", node)
+    if (length(datalist) == 0){
+      datalist <- dfnode
+    }
+    else {
+      datalist <- merge(datalist, dfnode, by.x="char", by.y="char")
+    }
 
+  }
 }
 
-write.csv(datalist,"pls_datalist.csv")
 
-treeplot <- ggtree(start, size=1) + geom_tiplab(size=2)
 
-nodelabs <- (2+Ntip(start)):(start$Nnode+Ntip(start))
+write.csv(datalist,"pls_datalist.csv",row.names=tab$partition)
 
 #totals
 insets <- list()
 
 outlierprts <- numeric()
-outlierall <- data.frame(prt=character(),val=numeric(),node=numeric(),tips=list()) 
+
+if (opt == "-m"){
+  nodelabs <- (3:length(tab[1,]))-1
+  #print(length(tab[1,]))
+  #print(nodelabs)
+  numplots <- 2:(length(tab[1,])-1)
+  #print(numplots)
+  outlierall <- data.frame(prt=character(),val=numeric(),node=numeric()) 
+} else {
+  treeplot <- ggtree(start, size=1) + geom_tiplab(size=2)
+  nodelabs <- (2+Ntip(start)):(start$Nnode+Ntip(start))
+  numplots <- 2:start$Nnode
+  outlierall <- data.frame(prt=character(),val=numeric(),node=numeric(),tips=list()) 
+}
+
 
 pdf("pls_nodeplots.pdf")
-for (i in 2:start$Nnode){
+for (i in numplots){
+  print (i)
 	 datatemp <- datalist[,c(1,i)]
    colnames(datatemp) <- c("char", "value")
    datatemp$col <- NA
    datatemp$col[datatemp$value<0] <- 1
    datatemp$col[datatemp$value>=0] <- 0
+
   	plot1 <- ggplot(data=datatemp, aes(x=char, y=value, fill=as.character(col)))+
   	labs(title=nodelabs[i-1])+
     geom_bar(stat="identity") + theme(legend.position="none",axis.title.x=element_blank(),
@@ -113,22 +149,33 @@ for (i in 2:start$Nnode){
   	print(tempvec)
   	if (length(tempvec) > 0){
   	  	for (tv in tempvec){
-  	  		outlierall <- rbind(outlierall, data.frame(prt=tv, val=as.numeric(names(tempvec)[tempvec == tv]), node=nodelabs[i-1], tips=I(list(start$tip.label[unlist(Descendants(start,nodelabs[i-1],"tips"))]))))
-			if (tv %in% names(outlierprts)){
-				outlierprts[tv] = outlierprts[tv] + 1
-			}
+          if (opt == "-m"){
+            outlierall <- rbind(outlierall, data.frame(prt=tv, val=as.numeric(names(tempvec)[tempvec == tv]), node=nodelabs[i-1]))
+          } else {
+            outlierall <- rbind(outlierall, data.frame(prt=tv, val=as.numeric(names(tempvec)[tempvec == tv]), node=nodelabs[i-1], tips=I(list(start$tip.label[unlist(Descendants(start,nodelabs[i-1],"tips"))]))))
+          }
+  	  		
+    			if (tv %in% names(outlierprts)){
+    				outlierprts[tv] = outlierprts[tv] + 1
+    			}
   	  		else{
   	  			outlierprts <- c(outlierprts, setNames(1,tv))
   	  		}
   	  	}
   	}
+   
     ###
   	tempvec <- tab[which(datatemp$value > boxplot(datatemp$value, plot=F)$stats[5]*3),1]
   	names(tempvec) <- datatemp$value[which(datatemp$value > boxplot(datatemp$value, plot=F)$stats[5]*3)]-boxplot(datatemp$value, plot=F)$stats[5]*3
   	print(tempvec)
    	if (length(tempvec) > 0){
   	  	for (tv in tempvec){
-  	  		outlierall <- rbind(outlierall, data.frame(prt=tv, val=as.numeric(names(tempvec)[tempvec == tv]), node=nodelabs[i-1], tips=I(list(start$tip.label[unlist(Descendants(start,nodelabs[i-1],"tips"))]))))
+          if (opt == "-m"){
+            outlierall <- rbind(outlierall, data.frame(prt=tv, val=as.numeric(names(tempvec)[tempvec == tv]), node=nodelabs[i-1]))
+          } else {
+            outlierall <- rbind(outlierall, data.frame(prt=tv, val=as.numeric(names(tempvec)[tempvec == tv]), node=nodelabs[i-1], tips=I(list(start$tip.label[unlist(Descendants(start,nodelabs[i-1],"tips"))]))))
+          }
+  	  		
 			if (tv %in% names(outlierprts)){
 				outlierprts[tv] = outlierprts[tv] + 1
 			}
@@ -162,9 +209,9 @@ ggbar2 <- ggplot(outlierall, aes(x=reorder(outlierall$groups,-abs(outlierall$val
 ggsave("pls_LnLdiff_outliers.pdf", ggbar2)
 ###
 
-
-finalplot <- inset(treeplot, insets, width=max(treeplot$data$x)/10, height=length(treeplot$data$isTip[treeplot$data$isTip])/30,vjust=0.2,hjust=0.005)
-
-ggsave("pls_annotated_tree.pdf",finalplot, width=8.5, height=20)
+if (opt != "-m"){
+  finalplot <- inset(treeplot, insets, width=max(treeplot$data$x)/10, height=length(treeplot$data$isTip[treeplot$data$isTip])/30,vjust=0.2,hjust=0.005)
+  ggsave("pls_annotated_tree.pdf",finalplot, width=8.5, height=20)
+}
 
   	
