@@ -3,7 +3,7 @@ import sys
 if len(sys.argv) >= 3:
 	opt = sys.argv[1]
 	tab = sys.argv[2]
-	if opt == "-prt":
+	if opt[:4] == "-prt":
 		prts = sys.argv[3]
 	elif opt == "-sl":
 		if sys.argv[3] and sys.argv[4]:
@@ -23,8 +23,9 @@ if len(sys.argv) >= 3:
 		print "incorrect command, exiting"
 		sys.exit()
 else:
-	print "FORMAT: python PLS.py [option: -prt (use partition file), -sl (use per site calculation), -stN (sum every N positions)] [path to .sitelh file] [path to partition file] ([start] [end])"
+	print "FORMAT: python PLS.py [option: -prt (use partition file), -prtS (use partition file, standardize by length), -sl (use per site calculation), -stN (sum every N positions)] [path to .sitelh file] [path to partition file] ([start] [end])"
 	print "EXAMPLE: python PLS.py -prt analysis.sitelh partitions.txt"
+	print "EXAMPLE: python PLS.py -prtS analysis.sitelh partitions.txt"
 	print "EXAMPLE: python PLS.py -st10 analysis.sitelh"
 	print "EXAMPLE: python PLS.py -st10 analysis.sitelh 1 2075"
 	print "EXAMPLE: python PLS.py -sl analysis.sitelh 2075 3028"
@@ -42,7 +43,7 @@ with open(tab, "rb") as tabfile:
 
 prtout = {}
 
-if opt == "-prt":
+if opt[:4] == "-prt":
 	with open(prts, "rb") as prtfile:
 		for row in prtfile:
 			row_eq = row.strip().split("=")
@@ -81,6 +82,8 @@ for partition, prtrange in sorted(prtout.items()):
 	treeprtll = []
 	for tree, psll in sorted(tabout.items()):
 		prtll = sum(psll[prtrange[0]-1:prtrange[1]-1])
+		if opt == "-prtS":
+			prtll = prtll/(prtrange[1]-prtrange[0])
 		treeprtll.append(str(prtll))
 	print >> finaout, str(partition)+","+",".join(treeprtll)
 finaout.close()
