@@ -50,40 +50,44 @@ if opt[:4] == "-prt":
 			row_prt = row_eq[0].strip().split(",")[1].strip()
 			row_ranges = row_eq[1].strip().split(",")
 			if len(row_ranges) == 1:
-				prtout[row_prt] = [int(i) for i in row_ranges[0].strip().split("-")]
-				print "partition", row_prt, "ranges", prtout[row_prt][0], prtout[row_prt][-1]
+				prtout[row_prt] = [[int(i) for i in row_ranges[0].strip().split("-")]]
 			else:
+				prtout[row_prt] = []
 				for r in range(len(row_ranges)):
-					prtout[row_prt+"_"+str(r+1)] = [int(i) for i in row_ranges[r].strip().split("-")]
-					print "partition", row_prt+"_"+str(r+1), "ranges", prtout[row_prt+"_"+str(r+1)][0], prtout[row_prt+"_"+str(r+1)][-1]
+					prtout[row_prt].append([int(i) for i in row_ranges[r].strip().split("-")])
+			print "partition", row_prt, "ranges", prtout[row_prt]
 elif opt == "-sl":
 	if start == 0 and end == -1:
 		print "site likelihoods, beginning to end"
 		for i in range(1,len(tabout[1])):
-			prtout[i] = [i,i+1]
+			prtout[i] = [[i,i+1]]
 	else:
 		print "site likelihoods, start", start, "end", end
 		for i in range(start,end+1):
-			prtout[i] = [i,i+1]
+			prtout[i] = [[i,i+1]]
 elif opt[:3] == "-st":
 	step = int(opt[3:])
 	if start == 0 and end == -1:
 		print "site likelihoods, beginning to end, step", step
 		for i in range(1,len(tabout[1]),step):
-			prtout[i] = [i,i+step]
+			prtout[i] = [[i,i+step]]
 	else:
 		print "site likelihoods, start", start, "end", end, "step", step
 		for i in range(start,end+1,step):
-			prtout[i] = [i,i+step]
+			prtout[i] = [[i,i+step]]
 
 finaout = open("pls_prtlls.csv","w")
 print >> finaout, "partition,"+",".join([str(i) for i in sorted(tabout.keys())])
 for partition, prtrange in sorted(prtout.items()):
 	treeprtll = []
 	for tree, psll in sorted(tabout.items()):
-		prtll = sum(psll[prtrange[0]-1:prtrange[1]-1])
+		totalpos = []
+		for posrange in prtrange:
+			for x in psll[posrange[0]-1:posrange[1]-1]:
+				totalpos.append(x)
+		prtll = sum(totalpos)
 		if opt == "-prtS":
-			prtll = prtll/(prtrange[1]-prtrange[0])
+			prtll = prtll/len(totalpos)
 		treeprtll.append(str(prtll))
 	print >> finaout, str(partition)+","+",".join(treeprtll)
 finaout.close()
