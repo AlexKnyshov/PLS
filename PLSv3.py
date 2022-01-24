@@ -19,16 +19,19 @@ if len(sys.argv) >= 3:
 		else:
 			start = 0
 			end = -1
+	elif opt[:2] == "-f":
+		print ("summing up all positions")
 	else:
 		print ("incorrect command, exiting")
 		sys.exit()
 else:
-	print ("FORMAT: python PLS.py [option: -prt (use partition file), -prtS (use partition file, standardize by length), -sl (use per site calculation), -stN (sum every N positions)] [path to .sitelh file] [path to partition file] ([start] [end])")
+	print ("FORMAT: python PLS.py [option: -prt (use partition file), -prtS (use partition file, standardize by length), -sl (use per site calculation), -stN (sum every N positions), -f (sum all positions), -fS (sum all positions, standardize by length)] [path to .sitelh file] [path to partition file] ([start] [end])")
 	print ("EXAMPLE: python PLS.py -prt analysis.sitelh partitions.txt")
 	print ("EXAMPLE: python PLS.py -prtS analysis.sitelh partitions.txt")
 	print ("EXAMPLE: python PLS.py -st10 analysis.sitelh")
 	print ("EXAMPLE: python PLS.py -st10 analysis.sitelh 1 2075")
 	print ("EXAMPLE: python PLS.py -sl analysis.sitelh 2075 3028")
+	print ("EXAMPLE: python PLS.py -f analysis.sitelh")
 	sys.exit()
 
 tabout = {}
@@ -75,6 +78,8 @@ elif opt[:3] == "-st":
 		print ("site likelihoods, start", start, "end", end, "step", step)
 		for i in range(start,end+1,step):
 			prtout[i] = [[i,i+step]]
+elif opt[:2] == "-f":
+	prtout[1] = [[1, len(tabout[1])+1]]
 
 finaout = open("pls_prtlls.csv","w")
 print ("partition,"+",".join([str(i) for i in sorted(tabout.keys())]), file=finaout)
@@ -86,7 +91,7 @@ for partition, prtrange in sorted(prtout.items()):
 			for x in psll[posrange[0]-1:posrange[1]-1]:
 				totalpos.append(x)
 		prtll = sum(totalpos)
-		if opt == "-prtS":
+		if opt == "-prtS" or opt == "-fS":
 			prtll = prtll/len(totalpos)
 		treeprtll.append(str(prtll))
 	print (str(partition)+","+",".join(treeprtll), file=finaout)
